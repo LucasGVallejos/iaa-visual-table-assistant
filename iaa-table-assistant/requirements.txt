@@ -1,0 +1,30 @@
+# Core ML / Computer Vision
+ultralytics>=8.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Data processing
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Experiment tracking
+mlflow>=2.8.0
+
+# Dataset and model versioning
+dvc>=3.0.0
+# dvc-gdrive>=3.0.0  # Enable if Google Drive is used as DVC remote
+
+# ONNX export and validation
+onnx>=1.14.0
+onnxruntime>=1.16.0
+
+# Utilities
+PyYAML>=6.0
+tqdm>=4.65.0
+matplotlib>=3.7.0
+
+# Notebooks
+jupyter>=1.0.0
+ipywidgets>=8.0.0

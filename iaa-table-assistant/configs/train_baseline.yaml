@@ -1,0 +1,16 @@
+# Baseline training configuration for Phase 1
+# This file will store the initial training parameters for the object detection model.
+# It is intentionally left as a stub until the dataset preparation stage is completed
+# and the first training decisions are defined.
+
+# Planned fields:
+# model:
+# data:
+# epochs:
+# batch:
+# imgsz:
+# optimizer:
+# learning_rate:
+# augment:
+# project:
+# name:

@@ -1,0 +1,19 @@
+# Dataset configuration for YOLO training
+# This file defines the dataset paths and class names used by the model.
+
+path: datasets/table_assistant_yolo
+
+train: images/train
+val: images/val
+test: images/test
+
+nc: 7
+
+names:
+  0: food
+  1: cup_glass
+  2: bottle
+  3: plate_bowl
+  4: spoon
+  5: fork
+  6: knife

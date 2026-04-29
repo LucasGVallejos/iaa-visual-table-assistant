@@ -1,0 +1,45 @@
+# Class definitions for the visual table assistant
+# Maps class IDs to human-readable names and visualization colors
+
+classes:
+  - id: 0
+    name: food
+    color: [255, 165, 0]
+    color_name: orange
+    description: "Any visible food item on the table, without identifying the specific type of food."
+
+  - id: 1
+    name: cup_glass
+    color: [0, 255, 255]
+    color_name: cyan
+    description: "Drinking containers such as cups, glasses or mugs."
+
+  - id: 2
+    name: bottle
+    color: [0, 128, 255]
+    color_name: light blue
+    description: "Bottles or similar vertical liquid containers."
+
+  - id: 3
+    name: plate_bowl
+    color: [255, 255, 0]
+    color_name: yellow
+    description: "Plates, bowls or food containers."
+
+  - id: 4
+    name: spoon
+    color: [0, 255, 0]
+    color_name: green
+    description: "Spoon used as tableware."
+
+  - id: 5
+    name: fork
+    color: [255, 0, 255]
+    color_name: magenta
+    description: "Fork used as tableware."
+
+  - id: 6
+    name: knife
+    color: [255, 0, 0]
+    color_name: red
+    description: "Knife used as tableware or cutting utensil."
