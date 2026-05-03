@@ -24,6 +24,9 @@ ENV/
 # Jupyter
 .ipynb_checkpoints/
 
+# Local data (downloads, exports, zips)
+local_data/
+
 # Data, models and outputs
 datasets/*
 !datasets/.gitkeep

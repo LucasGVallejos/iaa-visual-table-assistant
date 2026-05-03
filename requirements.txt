@@ -3,6 +3,9 @@ ultralytics>=8.0.0
 torch>=2.0.0
 torchvision>=0.15.0
 
+# Dataset acquisition
+fiftyone>=1.0.0
+
 # Data processing
 opencv-python>=4.8.0
 Pillow>=10.0.0
