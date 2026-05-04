@@ -2,43 +2,73 @@
 
 ## Overview
 
-This project is a table assistant for visually impaired people.
+This project is a visual table assistant for people with visual impairment.
 
-Phase 1 focuses on building the training and export pipeline for the detection model. Real-time camera and audio synthesis belong to Phase 2.
+Phase 1 focuses on data acquisition, raw dataset inspection, future YOLO dataset
+preparation, model training, evaluation, and export.
 
-## Phase 1 Pipeline
+Real-time camera capture and audio synthesis belong to Phase 2.
 
+## Current Phase 1 Architecture
+
+```mermaid
+flowchart LR
+    A[Local] --> B[Download Open Images V7 with FiftyOne]
+    B --> C[Filter requested detections]
+    C --> D[Export COCO Detection + ZIP]
+    D --> E[Google Drive raw dataset storage]
+    F[UEC FOOD-256 ZIP] --> E
+    E --> G[Google Colab]
+    G --> H[Extract raw datasets to /content]
+    H --> I[Visual bbox sanity checks]
+    I --> J[Future: unified YOLO dataset]
+    J --> K[Future: YOLO-based training]
+    K --> L[Future: evaluation + MLflow]
+    K --> M[Future: DVC model/data versioning]
+    L --> N[Future: ONNX export]
 ```
-┌──────────────┐     ┌──────────────┐     ┌───────────────┐
-│  Images +    │───▶│    Data      │────▶│  YOLO Dataset │
-│  annotations │     │  Pipeline    │     │  train/val/   │
-│  (raw)       │     │              │     │  test         │
-└──────────────┘     └──────────────┘     └──────┬────────┘
-                                                 │
-                           ┌─────────────────────┤
-                           ▼                     ▼
-                    ┌──────────────┐     ┌──────────────┐
-                    │  DVC         │     │  Training    │
-                    │  (data       │     │  YOLOv8      │
-                    │   versioning)│     └──────┬───────┘
-                    └──────────────┘            │
-                                                ▼
-                    ┌──────────────┐     ┌──────────────┐
-                    │  MLflow      │◀───│  Evaluation   │
-                    │  (tracking)  │     │  mAP/P/R     │
-                    └──────────────┘     └──────┬───────┘
-                                                │
-                                                ▼
-                                         ┌──────────────┐
-                                         │  ONNX Export │
-                                         └──────────────┘
-```
+
+## Raw Dataset Sources
+
+### Open Images V7
+
+Used for table-related object classes (bottle, cup, plate, bowl, cutlery).
+
+- Downloaded locally with FiftyOne.
+- Detection annotations (bounding boxes) are used.
+- Requested detections are filtered to remove unrelated classes.
+- Exported to portable COCO Detection format.
+- Stored as ZIP in Google Drive.
+
+Current source classes:
+
+- Bottle
+- Bowl
+- Coffee cup
+- Fork
+- Kitchen knife
+- Knife
+- Mixing bowl
+- Plate
+- Spoon
+- Wine glass
+
+### UEC FOOD-256
+
+Used for generic food detection.
+
+- All 256 food categories will be mapped to the final class `food`.
+- `category.txt` maps numeric food IDs to food names.
+- Each category folder contains images and a `bb_info.txt` file.
+- `bb_info.txt` format: `img x1 y1 x2 y2`
+- Coordinates are absolute pixel values.
+- Some images may contain multiple bounding boxes.
 
 ## Detection Classes
 
 | ID | Class       | Description                    |
 |----|-------------|--------------------------------|
-| 0  | food        | Food items on the table        |
+| 0  | food        | Generic food item on the table |
 | 1  | cup_glass   | Cups and glasses               |
 | 2  | bottle      | Bottles                        |
 | 3  | plate_bowl  | Plates and bowls               |
@@ -46,43 +76,91 @@ Phase 1 focuses on building the training and export pipeline for the detection m
 | 5  | fork        | Forks                          |
 | 6  | knife       | Knives                         |
 
-## Components (Phase 1)
+The system does not aim to identify the specific type of food. Food is treated as
+a generic detection class.
 
-### Data Pipeline (`src/data/`)
-- Directory structure preparation
-- Annotation conversion to YOLO format
-- Train/val/test splitting
-- Dataset integrity validation
+## Source-to-Target Label Mapping
 
-### Training (`src/training/`)
-- YOLOv8 training with YAML-based configuration
-- Evaluation with standard metrics (mAP50, mAP50-95, precision, recall)
-- Experiment tracking with MLflow
+| Source Dataset   | Source Label  | Target Class |
+|------------------|---------------|--------------|
+| Open Images V7   | Bottle        | bottle       |
+| Open Images V7   | Coffee cup    | cup_glass    |
+| Open Images V7   | Wine glass    | cup_glass    |
+| Open Images V7   | Bowl          | plate_bowl   |
+| Open Images V7   | Plate         | plate_bowl   |
+| Open Images V7   | Mixing bowl   | plate_bowl   |
+| Open Images V7   | Spoon         | spoon        |
+| Open Images V7   | Fork          | fork         |
+| Open Images V7   | Knife         | knife        |
+| Open Images V7   | Kitchen knife | knife        |
+| UEC FOOD-256     | any category  | food         |
 
-### Export (`src/inference/`)
-- Trained model export to ONNX
-- Exported model validation
+This mapping will be applied later during unified YOLO dataset preparation.
+
+## Components
+
+### Data Acquisition and Raw Setup (`src/data/`)
+
+Current scripts:
+
+- **`download_open_images_subset.py`** — Runs locally. Downloads selected Open Images
+  V7 classes with FiftyOne, validates class names, filters detections, exports to
+  COCO Detection format, and creates a ZIP for Google Drive.
+- **`setup_colab_raw_datasets.py`** — Runs in Colab after mounting Google Drive.
+  Finds and extracts raw dataset ZIPs into `/content`, inspects Open Images COCO
+  JSON and UEC FOOD-256 structure.
+- **`visualize_raw_bboxes.py`** — Runs in Colab. Generates visual sanity check
+  images for raw bounding boxes from both datasets.
+
+### Dataset Preparation (`src/data/`) — Planned
+
+- Convert Open Images COCO annotations to YOLO format.
+- Convert UEC FOOD-256 `bb_info.txt` annotations to YOLO format.
+- Apply source-to-target label mapping.
+- Create a unified dataset combining both sources.
+- Split into train/validation/test.
+- Validate dataset integrity.
+
+### Training (`src/training/`) — Planned
+
+- YOLO-based detector training.
+- Evaluation with mAP50, mAP50-95, precision, recall.
+- Experiment tracking with MLflow.
+
+Training scripts exist as stubs. They will be implemented after dataset preparation
+is complete.
+
+### Export (`src/inference/`) — Planned
+
+- Export trained model to ONNX format.
+- Validate exported ONNX model.
 
 ### Utilities (`src/utils/`)
-- Project-relative path resolution
-- YOLO label reading and class counting
+
+- Project-relative path resolution.
+- YOLO label reading and class counting.
 
 ## Configuration
 
-- `configs/data.yaml` — Dataset paths and class definitions
-- `configs/classes.yaml` — Class metadata (names, colors)
-- `configs/train_baseline.yaml` — Training hyperparameters
+- `configs/data.yaml` — Dataset paths and class definitions (YOLO format).
+- `configs/classes.yaml` — Class metadata (names, colors).
+- `configs/train_baseline.yaml` — Training hyperparameters (placeholder until
+  dataset preparation is complete).
+- Future: `configs/label_mapping.yaml` — Source-to-target label mapping.
 
-## Model
+## Model Strategy
 
-- **Architecture**: YOLOv8
-- **Task**: Object detection
-- **Classes**: 7 (food, cup_glass, bottle, plate_bowl, spoon, fork, knife)
-- **Input**: 640×640 RGB
-- **Export**: ONNX
+YOLO (Ultralytics) is selected as the detection framework because it balances
+detection performance and inference speed, which is important for a future
+real-time assistant.
+
+- Exact model version and hyperparameters will be defined after dataset preparation.
+- Future export target is ONNX for deployment.
 
 ## Out of Scope (Phase 2+)
 
-- Real-time video capture (webcam)
+- Real-time webcam capture
 - Voice / audio synthesis
-- User interface / interactive prototype
+- User interface
+- Interactive prototype
+- User testing
