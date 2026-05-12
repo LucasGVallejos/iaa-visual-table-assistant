@@ -17,7 +17,7 @@ mlflow>=2.8.0
 
 # Dataset and model versioning
 dvc>=3.0.0
-# dvc-gdrive>=3.0.0  # Enable if Google Drive is used as DVC remote
+dvc-gdrive>=3.0.0  # Enable if Google Drive is used as DVC remote
 
 # ONNX export and validation
 onnx>=1.14.0
