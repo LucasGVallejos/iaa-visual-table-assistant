@@ -17,9 +17,9 @@ The prepared dataset will be built from public datasets and converted into YOLO 
 | ID | Class | Description |
 |---:|-------|-------------|
 | 0 | food | Generic visible food item. Specific food type is not identified. |
-| 1 | cup_glass | Cups, glasses or mugs. |
+| 1 | cup | Cups, glasses or mugs. |
 | 2 | bottle | Bottles or similar vertical liquid containers. |
-| 3 | plate_bowl | Plates, bowls or food containers. |
+| 3 | plate | Plates, bowls or food containers. |
 | 4 | spoon | Spoon used as tableware. |
 | 5 | fork | Fork used as tableware. |
 | 6 | knife | Knife used as tableware or cutting utensil. |
@@ -41,9 +41,9 @@ The prepared dataset will be built from public datasets and converted into YOLO 
 | Class | Train | Val | Test |
 |-------|------:|----:|-----:|
 | food | - | - | - |
-| cup_glass | - | - | - |
+| cup | - | - | - |
 | bottle | - | - | - |
-| plate_bowl | - | - | - |
+| plate | - | - | - |
 | spoon | - | - | - |
 | fork | - | - | - |
 | knife | - | - | - |
