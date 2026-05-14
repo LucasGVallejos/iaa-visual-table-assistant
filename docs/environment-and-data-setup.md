@@ -56,8 +56,8 @@ The following Open Images classes are currently configured for download:
 | Open Images class | Target model class |
 |---|---|
 | Bottle | bottle |
-| Coffee cup, Wine glass | cup_glass |
-| Bowl, Plate, Mixing bowl | plate_bowl |
+| Coffee cup, Wine glass | cup |
+| Bowl, Plate, Mixing bowl | plate |
 | Spoon | spoon |
 | Fork | fork |
 | Knife, Kitchen knife | knife |

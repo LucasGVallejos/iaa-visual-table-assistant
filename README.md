@@ -24,9 +24,9 @@ Phase 1 **does not include** real-time camera, audio synthesis, or interactive p
 | ID | Class |
 |----|-------|
 | 0  | food |
-| 1  | cup_glass |
+| 1  | cup |
 | 2  | bottle |
-| 3  | plate_bowl |
+| 3  | plate |
 | 4  | spoon |
 | 5  | fork |
 | 6  | knife |

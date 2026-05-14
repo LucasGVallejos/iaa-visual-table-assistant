@@ -69,9 +69,9 @@ Used for generic food detection.
 | ID | Class       | Description                    |
 |----|-------------|--------------------------------|
 | 0  | food        | Generic food item on the table |
-| 1  | cup_glass   | Cups and glasses               |
+| 1  | cup   | Cups and glasses               |
 | 2  | bottle      | Bottles                        |
-| 3  | plate_bowl  | Plates and bowls               |
+| 3  | plate  | Plates and bowls               |
 | 4  | spoon       | Spoons                         |
 | 5  | fork        | Forks                          |
 | 6  | knife       | Knives                         |
@@ -84,11 +84,11 @@ a generic detection class.
 | Source Dataset   | Source Label  | Target Class |
 |------------------|---------------|--------------|
 | Open Images V7   | Bottle        | bottle       |
-| Open Images V7   | Coffee cup    | cup_glass    |
-| Open Images V7   | Wine glass    | cup_glass    |
-| Open Images V7   | Bowl          | plate_bowl   |
-| Open Images V7   | Plate         | plate_bowl   |
-| Open Images V7   | Mixing bowl   | plate_bowl   |
+| Open Images V7   | Coffee cup    | cup    |
+| Open Images V7   | Wine glass    | cup    |
+| Open Images V7   | Bowl          | plate   |
+| Open Images V7   | Plate         | plate   |
+| Open Images V7   | Mixing bowl   | plate   |
 | Open Images V7   | Spoon         | spoon        |
 | Open Images V7   | Fork          | fork         |
 | Open Images V7   | Knife         | knife        |

@@ -9,7 +9,7 @@ classes:
     description: "Any visible food item on the table, without identifying the specific type of food."
 
   - id: 1
-    name: cup_glass
+    name: cup
     color: [0, 255, 255]
     color_name: cyan
     description: "Drinking containers such as cups, glasses or mugs."
@@ -21,7 +21,7 @@ classes:
     description: "Bottles or similar vertical liquid containers."
 
   - id: 3
-    name: plate_bowl
+    name: plate
     color: [255, 255, 0]
     color_name: yellow
     description: "Plates, bowls or food containers."
