@@ -55,3 +55,25 @@ def get_outputs_dir() -> Path:
 def get_output_path(run_name: str) -> Path:
     """Return the path to a specific output run."""
     return get_outputs_dir() / run_name
+
+def get_staging_dir() -> Path:
+  """Per-source staging area used during dataset conversion."""
+  return get_datasets_dir() / "_staging"
+
+def get_uec_staging_dir() -> Path:
+  """Staging directory for the UEC FOOD-256 → YOLO conversion."""
+  return get_staging_dir() / "uec_food"
+
+def get_uecfood256_dataset_original_dir() -> Path:
+  """Original UEC FOOD-256 dataset directory."""
+  return get_datasets_dir() / "UECFOOD256"
+
+
+def get_reports_dir() -> Path:
+  """Return the reports directory."""
+  return get_project_root() / "reports"
+
+
+def get_skipped_images_csv_path() -> Path:
+  """Return the path to the skipped images log CSV (shared across sources)."""
+  return get_reports_dir() / "skipped_images.csv"

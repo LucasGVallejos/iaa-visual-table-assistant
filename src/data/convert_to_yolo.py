@@ -9,7 +9,7 @@ datasets are inspected individually.
 """
 
 from pathlib import Path
-
+from PIL import Image
 import yaml
 
 
@@ -41,13 +41,16 @@ def voc_to_yolo(bbox: list[float], img_width: int, img_height: int) -> list[floa
     return [x_center, y_center, w, h]
 
 
-def write_yolo_label(output_path: Path, annotations: list[tuple[int, list[float]]]) -> None:
+def write_yolo_label(output_path: Path, class_id: int, annotations: list[list[float]]) -> None:
     """Write annotations in YOLO format to a label file."""
     with open(output_path, "w") as f:
-        for class_id, bbox in annotations:
+        for bbox in annotations:
             line = f"{class_id} {' '.join(f'{v:.6f}' for v in bbox)}\n"
             f.write(line)
 
+def write_image_in_yolo(image_path: Path, output_path: Path) -> None:
+  """Write JPEG image to output path, converting to RGB if necessary."""
+  Image.open(image_path).convert("RGB").save(output_path, "JPEG", quality=95)
 
 def load_class_mapping(config_path: str = "configs/classes.yaml") -> dict[str, int]:
     """Load class name to ID mapping from config."""
