@@ -11,8 +11,9 @@ This script does NOT:
 - Train any model
 - Use DVC or MLflow
 
-Usage (from Colab):
-    !python -m src.data.visualize_raw_bboxes
+Usage::
+
+    python -m src.data.raw_setup.visualize_raw_bboxes
 """
 
 import json
@@ -25,14 +26,18 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from PIL import Image
 
+from src.utils.paths import (
+    get_open_images_dataset_original_dir,
+    get_outputs_dir,
+    get_uec_food_dataset_extract_dir,
+)
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-LOCAL_DATA_DIR = Path("/content/iaa-table-assistant-data")
-LOCAL_RAW_DATASETS_DIR = LOCAL_DATA_DIR / "raw_datasets"
-LOCAL_OPEN_IMAGES_DIR = LOCAL_RAW_DATASETS_DIR / "open_images_subset"
-LOCAL_UEC_FOOD_DIR = LOCAL_RAW_DATASETS_DIR / "uec_food_256"
-OUTPUT_DIR = LOCAL_DATA_DIR / "outputs" / "bbox_checks"
+LOCAL_OPEN_IMAGES_DIR = get_open_images_dataset_original_dir()
+LOCAL_UEC_FOOD_DIR = get_uec_food_dataset_extract_dir()
+OUTPUT_DIR = get_outputs_dir() / "bbox_checks"
 
 
 # ---------------------------------------------------------------------------

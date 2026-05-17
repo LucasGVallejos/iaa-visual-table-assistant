@@ -66,9 +66,9 @@ Two raw sources, already documented in `docs/architecture.md` and
 `docs/environment-and-data-setup.md`:
 
 - **Open Images V7** (subset, COCO format) for non-food classes. Downloaded
-  locally with FiftyOne via `src/data/download_open_images_subset.py`. Source
-  classes: Bottle, Bowl, Coffee cup, Fork, Kitchen knife, Knife, Mixing bowl,
-  Plate, Spoon, Wine glass.
+  locally with FiftyOne via `src/data/raw_setup/download_open_images_subset.py`.
+  Source classes: Bottle, Bowl, Coffee cup, Fork, Kitchen knife, Knife,
+  Mixing bowl, Plate, Spoon, Wine glass.
 - **UEC FOOD-256** for the `food` class. All 256 categories collapse to
   class id 0.
 
@@ -93,25 +93,36 @@ iaa-visual-table-assistant/
 ├── notebooks/                      ← Colab training notebook
 ├── reports/                        ← experiment logs, dataset notes
 ├── src/
-│   ├── data/                       ← acquisition, conversion, validation
+│   ├── data/
+│   │   ├── raw_setup/              ← download, extract, visualize raw datasets
+│   │   ├── conversion/             ← per-source COCO/VOC → YOLO converters
+│   │   ├── common/                 ← shared YOLO + dataset I/O helpers
+│   │   ├── preparation/            ← merge + split into final YOLO dataset
+│   │   └── validation/             ← YOLO label/integrity validation
 │   ├── training/                   ← train, evaluate, MLflow (stubs)
 │   ├── inference/                  ← ONNX export and validation (stubs)
 │   └── utils/                      ← path and label helpers
-├── datasets/                       ← prepared YOLO dataset (gitignored, DVC-tracked)
+├── datasets/                       ← all datasets (gitignored)
+│   ├── raw_datasets/               ← extracted raw source datasets
+│   ├── _staging/                   ← per-source intermediate YOLO conversions
+│   └── table_assistant_yolo/       ← final trainable YOLO dataset (DVC-tracked later)
 ├── models/                         ← trained weights (gitignored, DVC-tracked)
 ├── outputs/                        ← run artifacts (gitignored)
-└── local_data/                     ← local raw downloads (gitignored)
+└── reports/                        ← skipped-image logs, dataset notes
 ```
 
 Important conventions:
 
 - `src/utils/paths.py` centralizes all project-relative paths. Use it instead
   of hardcoding strings. New paths go here.
-- `src/data/convert_to_yolo.py` already provides `coco_to_yolo`, `voc_to_yolo`,
-  `write_yolo_label`, and `load_class_mapping`. Reuse these helpers; do not
+- `src/data/common/convert_to_yolo.py` already provides `coco_to_yolo`,
+  `voc_to_yolo`, `write_yolo_label`, `write_yolo_annotations`,
+  `load_class_mapping`, and `load_label_mapping`. Reuse these helpers; do not
   reimplement.
-- `src/data/validate_dataset.py` already validates YOLO label integrity. Run
-  it after any dataset generation step.
+- `src/data/common/dataset_io.py` provides shared staging/skipped-CSV/sample
+  writing helpers used by every per-source converter.
+- `src/data/validation/validate_dataset.py` validates YOLO label integrity.
+  Run it after any dataset generation step.
 - Stubs (files that just print "Pending implementation:") are intentional
   placeholders. Replace the body when implementing; preserve module-level
   docstrings.
@@ -127,8 +138,8 @@ Two environments, with different responsibilities:
   run locally), dataset conversion to YOLO format, dataset zip packaging.
 - **Google Colab** (notebook in `notebooks/01_training_colab.ipynb`):
   training, evaluation, ONNX export. Reads from Google Drive zips; extracts
-  to `/content/iaa-table-assistant-data/` for fast local I/O during the
-  session.
+  them into the repo's `datasets/raw_datasets/` directory for fast local I/O
+  during the session.
 
 When writing scripts, declare the intended environment at the top of the
 module docstring. Do not write code that silently assumes Colab paths
@@ -198,11 +209,11 @@ pytest tests/test_foo.py::test_bar     # single test
 Data pipeline — always run as modules from the project root (see §6):
 
 ```bash
-python -m src.data.download_open_images_subset   # local, FiftyOne
-python -m src.data.setup_colab_raw_datasets      # Colab only
-python -m src.data.visualize_raw_bboxes          # Colab only
-python -m src.data.prepare_dataset               # scaffolds datasets/table_assistant_yolo/
-python -m src.data.validate_dataset              # validates final YOLO layout
+python -m src.data.raw_setup.download_open_images_subset   # local, FiftyOne
+python -m src.data.raw_setup.setup_colab_raw_datasets      # Colab only
+python -m src.data.raw_setup.visualize_raw_bboxes          # Colab only
+python -m src.data.preparation.prepare_dataset             # scaffolds datasets/table_assistant_yolo/
+python -m src.data.validation.validate_dataset             # validates final YOLO layout
 ```
 
 Training and inference (currently stubs — see §8 below):
@@ -250,7 +261,8 @@ When asked to implement or modify something:
 1. **Read the relevant existing file(s) first**. Do not assume the codebase
    matches your priors. Several files are stubs; check before writing.
 2. **Reuse existing utilities** (`src/utils/paths.py`, `src/utils/labels.py`,
-   `src/data/convert_to_yolo.py`). Adding parallel helpers is a smell.
+   `src/data/common/convert_to_yolo.py`, `src/data/common/dataset_io.py`).
+   Adding parallel helpers is a smell.
 3. **Match existing style**: prose docstrings explaining purpose, no
    excessive inline comments, type hints on public functions, ruff-compliant.
 4. **Keep changes scoped**. Don't refactor unrelated files in passing.

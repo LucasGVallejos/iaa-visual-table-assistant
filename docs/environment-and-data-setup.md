@@ -139,28 +139,28 @@ Workflow:
 
 3. Run the setup script to extract and inspect raw datasets:
    ```bash
-   python -m src.data.setup_colab_raw_datasets
+   python -m src.data.raw_setup.setup_colab_raw_datasets
    ```
    This script:
    - Finds zip files in the Drive `raw_datasets/` directories.
-   - Extracts them into `/content/iaa-table-assistant-data/raw_datasets/`.
+   - Extracts them into `datasets/raw_datasets/` inside the repo.
    - Inspects the Open Images COCO JSON (images, annotations, categories).
    - Inspects the UEC FOOD-256 structure (category.txt, bb_info.txt files).
 
 4. Run the visual sanity check:
    ```bash
-   python -m src.data.visualize_raw_bboxes
+   python -m src.data.raw_setup.visualize_raw_bboxes
    ```
    This script:
    - Creates one Open Images bounding box sample image.
    - Creates one UEC FOOD-256 bounding box sample image.
-   - Saves both under `/content/iaa-table-assistant-data/outputs/bbox_checks/`.
+   - Saves both under `outputs/bbox_checks/` inside the repo.
 
 5. Display the generated images in the notebook:
    ```python
    from IPython.display import Image, display
-   display(Image("/content/iaa-table-assistant-data/outputs/bbox_checks/open_images_sample.png"))
-   display(Image("/content/iaa-table-assistant-data/outputs/bbox_checks/uec_food_sample.png"))
+   display(Image("outputs/bbox_checks/open_images_sample.png"))
+   display(Image("outputs/bbox_checks/uec_food_sample.png"))
    ```
 
 ## 7. Visual Sanity Checks
@@ -175,7 +175,7 @@ Visual bounding box checks confirmed that:
 Generated check images:
 
 ```
-/content/iaa-table-assistant-data/outputs/bbox_checks/
+outputs/bbox_checks/
   open_images_sample.png
   uec_food_sample.png
 ```
