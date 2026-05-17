@@ -2,6 +2,13 @@
 Path utilities for consistent file and directory resolution.
 
 These helpers avoid hardcoded paths and keep project paths centralized.
+
+Dataset layout (centralized under ``datasets/``)::
+
+    datasets/
+    ├── raw_datasets/          # extracted raw source datasets
+    ├── _staging/              # intermediate per-source YOLO conversions
+    └── table_assistant_yolo/  # final trainable YOLO dataset (DVC-tracked later)
 """
 
 from pathlib import Path
@@ -17,26 +24,95 @@ def get_config_path(config_name: str) -> Path:
     return get_project_root() / "configs" / config_name
 
 
+# ---------------------------------------------------------------------------
+# Datasets root and subtrees
+# ---------------------------------------------------------------------------
 def get_datasets_dir() -> Path:
-    """Return the root datasets directory."""
+    """Return the root datasets directory (``<repo>/datasets``)."""
     return get_project_root() / "datasets"
 
 
-def get_table_assistant_dataset_path() -> Path:
-    """Return the prepared YOLO dataset directory for the table assistant."""
+def get_raw_datasets_dir() -> Path:
+    """Directory holding extracted raw source datasets.
+
+    ``datasets/raw_datasets/`` contains one subfolder per source dataset
+    (e.g. ``open_images_subset/``, ``uec_food_256/``).
+    """
+    return get_datasets_dir() / "raw_datasets"
+
+
+def get_staging_dir() -> Path:
+    """Per-source staging area used during dataset conversion.
+
+    ``datasets/_staging/`` contains intermediate YOLO conversions, one
+    subfolder per source dataset.
+    """
+    return get_datasets_dir() / "_staging"
+
+
+def get_table_assistant_yolo_dir() -> Path:
+    """Final trainable YOLO dataset directory.
+
+    ``datasets/table_assistant_yolo/`` is the merged + split dataset
+    consumed by training, and will be DVC-tracked once validated.
+    """
     return get_datasets_dir() / "table_assistant_yolo"
 
 
 def get_yolo_images_path(split: str) -> Path:
     """Return the image directory for a YOLO dataset split."""
-    return get_table_assistant_dataset_path() / "images" / split
+    return get_table_assistant_yolo_dir() / "images" / split
 
 
 def get_yolo_labels_path(split: str) -> Path:
     """Return the label directory for a YOLO dataset split."""
-    return get_table_assistant_dataset_path() / "labels" / split
+    return get_table_assistant_yolo_dir() / "labels" / split
 
 
+# ---------------------------------------------------------------------------
+# Raw datasets — per-source helpers
+# ---------------------------------------------------------------------------
+def get_open_images_dataset_original_dir() -> Path:
+    """Local directory where the Open Images COCO export lives.
+
+    Expected layout::
+
+        <dir>/labels.json
+        <dir>/data/<image_files>
+    """
+    return get_raw_datasets_dir() / "open_images_subset"
+
+
+def get_uec_food_dataset_extract_dir() -> Path:
+    """Directory where the UEC FOOD-256 zip is extracted.
+
+    The zip unpacks into a nested ``UECFOOD256/`` folder; use
+    :func:`get_uecfood256_dataset_original_dir` to address that inner root.
+    """
+    return get_raw_datasets_dir() / "uec_food_256"
+
+
+def get_uecfood256_dataset_original_dir() -> Path:
+    """Original UEC FOOD-256 dataset root (the inner ``UECFOOD256/`` folder)."""
+    return get_uec_food_dataset_extract_dir() / "UECFOOD256"
+
+
+# ---------------------------------------------------------------------------
+# Staging — per-source helpers
+# ---------------------------------------------------------------------------
+def get_uec_staging_dir() -> Path:
+    """Staging directory for the UEC FOOD-256 → YOLO conversion."""
+    return get_staging_dir() / "uec_food"
+
+
+def get_open_images_staging_dir() -> Path:
+    """Staging directory for the Open Images COCO → YOLO conversion."""
+    return get_staging_dir() / "open_images"
+
+
+# ---------------------------------------------------------------------------
+# Models, outputs, reports
+# ---------------------------------------------------------------------------
 def get_models_dir() -> Path:
     """Return the models directory."""
     return get_project_root() / "models"
@@ -56,24 +132,7 @@ def get_output_path(run_name: str) -> Path:
     """Return the path to a specific output run."""
     return get_outputs_dir() / run_name
 
-def get_staging_dir() -> Path:
-  """Per-source staging area used during dataset conversion."""
-  return get_datasets_dir() / "_staging"
-
-def get_uec_staging_dir() -> Path:
-  """Staging directory for the UEC FOOD-256 → YOLO conversion."""
-  return get_staging_dir() / "uec_food"
-
-def get_uecfood256_dataset_original_dir() -> Path:
-  """Original UEC FOOD-256 dataset directory."""
-  return get_datasets_dir() / "UECFOOD256"
-
 
 def get_reports_dir() -> Path:
-  """Return the reports directory."""
-  return get_project_root() / "reports"
-
-
-def get_skipped_images_csv_path() -> Path:
-  """Return the path to the skipped images log CSV (shared across sources)."""
-  return get_reports_dir() / "skipped_images.csv"
+    """Return the reports directory."""
+    return get_project_root() / "reports"

@@ -2,9 +2,9 @@
 Prepare and inspect raw datasets from Google Drive in Colab.
 
 This script assumes Google Drive is already mounted at /content/drive.
-It locates zip files uploaded to Drive, extracts them to local Colab
-storage, and inspects the structure of both Open Images (COCO format)
-and UEC FOOD-256 datasets.
+It locates zip files uploaded to Drive, extracts them into the repo's
+``datasets/raw_datasets/`` directory, and inspects the structure of both
+Open Images (COCO format) and UEC FOOD-256 datasets.
 
 This script does NOT:
 - Convert annotations to YOLO format
@@ -12,14 +12,20 @@ This script does NOT:
 - Train any model
 - Use DVC or MLflow
 
-Usage (from Colab, after mounting Drive):
-    !python -m src.data.setup_colab_raw_datasets
+Usage (from Colab, after mounting Drive)::
+
+    !python -m src.data.raw_setup.setup_colab_raw_datasets
 """
 
 import json
 import shutil
 import zipfile
 from pathlib import Path
+
+from src.utils.paths import (
+    get_open_images_dataset_original_dir,
+    get_uec_food_dataset_extract_dir,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -29,10 +35,9 @@ DRIVE_RAW_DATASETS_DIR = DRIVE_BASE_DIR / "raw_datasets"
 DRIVE_OPEN_IMAGES_DIR = DRIVE_RAW_DATASETS_DIR / "open_images_subset"
 DRIVE_UEC_FOOD_DIR = DRIVE_RAW_DATASETS_DIR / "uec_food_256"
 
-LOCAL_DATA_DIR = Path("/content/iaa-table-assistant-data")
-LOCAL_RAW_DATASETS_DIR = LOCAL_DATA_DIR / "raw_datasets"
-LOCAL_OPEN_IMAGES_DIR = LOCAL_RAW_DATASETS_DIR / "open_images_subset"
-LOCAL_UEC_FOOD_DIR = LOCAL_RAW_DATASETS_DIR / "uec_food_256"
+# Local extraction targets live inside the repo under datasets/raw_datasets/.
+LOCAL_OPEN_IMAGES_DIR = get_open_images_dataset_original_dir()
+LOCAL_UEC_FOOD_DIR = get_uec_food_dataset_extract_dir()
 
 
 # ---------------------------------------------------------------------------
