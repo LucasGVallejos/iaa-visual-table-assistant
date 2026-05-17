@@ -62,4 +62,4 @@ Thumbs.db
 .env
 *.log
 
-reports/skipped_images.csv
+reports/skipped_images/
