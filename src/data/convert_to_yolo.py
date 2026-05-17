@@ -42,22 +42,49 @@ def voc_to_yolo(bbox: list[float], img_width: int, img_height: int) -> list[floa
 
 
 def write_yolo_label(output_path: Path, class_id: int, annotations: list[list[float]]) -> None:
-    """Write annotations in YOLO format to a label file."""
-    with open(output_path, "w") as f:
+    """Write annotations in YOLO format to a label file.
+
+    Use when every bbox in the image shares the same class_id (e.g. UEC FOOD-256,
+    where every box is `food`). For per-bbox class IDs, use `write_yolo_annotations`.
+    """
+    with open(output_path, "w", encoding="utf-8") as f:
         for bbox in annotations:
             line = f"{class_id} {' '.join(f'{v:.6f}' for v in bbox)}\n"
             f.write(line)
+
+
+def write_yolo_annotations(
+    output_path: Path,
+    annotations: list[tuple[int, list[float]]],
+) -> None:
+    """Write YOLO annotations where each bbox carries its own class_id.
+
+    Each entry in `annotations` is a `(class_id, bbox)` pair, where `bbox` is the
+    already-normalized YOLO `[x_center, y_center, w, h]`.
+    """
+    with open(output_path, "w", encoding="utf-8") as f:
+        for class_id, bbox in annotations:
+            line = f"{class_id} {' '.join(f'{v:.6f}' for v in bbox)}\n"
+            f.write(line)
+
 
 def write_image_in_yolo(image_path: Path, output_path: Path) -> None:
   """Write JPEG image to output path, converting to RGB if necessary."""
   Image.open(image_path).convert("RGB").save(output_path, "JPEG", quality=95)
 
-def load_class_mapping(config_path: str = "configs/classes.yaml") -> dict[str, int]:
-    """Load class name to ID mapping from config."""
-    with open(config_path, "r") as f:
+def load_class_mapping(config_path: str | Path = "configs/classes.yaml") -> dict[str, int]:
+    """Load model class name -> class_id mapping from `configs/classes.yaml`."""
+    with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return {cls["name"]: cls["id"] for cls in config["classes"]}
 
+
+def load_label_mapping(config_path: str | Path = "configs/label_mapping.yaml") -> dict:
+    """Load source-dataset label -> target YOLO class_id mapping.
+    Returns the full YAML document.
+    """
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 def main():
     """Run annotation conversion pipeline."""

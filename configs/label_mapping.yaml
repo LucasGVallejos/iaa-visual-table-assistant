@@ -1,0 +1,16 @@
+# Source dataset labels -> target YOLO class IDs defined in configs/data.yaml
+
+open_images:
+  "Coffee cup": 1
+  "Wine glass": 1
+  Bottle: 2
+  Bowl: 3
+  Plate: 3
+  "Mixing bowl": 3
+  Spoon: 4
+  Fork: 5
+  Knife: 6
+  "Kitchen knife": 6
+
+uec_food_256:
+  default: 0
