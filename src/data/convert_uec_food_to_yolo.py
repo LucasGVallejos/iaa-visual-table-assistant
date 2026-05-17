@@ -7,9 +7,13 @@ from src.utils.paths import (
   get_uec_staging_dir,
   get_uecfood256_dataset_original_dir,
 )
-from src.data.convert_to_yolo import voc_to_yolo, write_yolo_label, write_image_in_yolo
+from src.data.convert_to_yolo import (
+  load_label_mapping,
+  voc_to_yolo,
+  write_image_in_yolo,
+  write_yolo_label,
+)
 
-FOOD_CLASS = 0
 SOURCE_LABEL = "uec_food_256"
 
 # NOTE 1: UECFOOD256 only has bounding boxes for food. Open Images conversion
@@ -23,6 +27,17 @@ def log_skipped(original_path: Path, reason: str) -> None:
   """Append a skip row to the shared skipped-images CSV."""
   with open(get_skipped_images_csv_path(), "a", newline="") as f:
     csv.writer(f).writerow([SOURCE_LABEL, str(original_path), reason])
+
+
+def get_food_class_id() -> int:
+  """Resolve the YOLO class_id for UEC FOOD-256 from `configs/label_mapping.yaml`."""
+  label_mapping = load_label_mapping()
+  try:
+    return int(label_mapping[SOURCE_LABEL]["default"])
+  except KeyError as exc:
+    raise KeyError(
+      f"Missing '{SOURCE_LABEL}.default' in configs/label_mapping.yaml"
+    ) from exc
 
 
 def step_01_reset_staging() -> Path:
@@ -40,7 +55,7 @@ def step_01_reset_staging() -> Path:
 
   return staging
 
-def step_02_process_uec_folder(destination_route: Path) -> None:
+def step_02_process_uec_folder(destination_route: Path, food_class_id: int) -> None:
   original_route = get_uecfood256_dataset_original_dir()
 
   def get_all_category_folders() -> list[Path]:
@@ -92,7 +107,6 @@ def step_02_process_uec_folder(destination_route: Path) -> None:
 
     for img_id, bbs in map_image_to_bb.items():
       image_path = folder / f"{img_id}.jpg"
-
       try:
         with Image.open(image_path) as image:
           width, height = image.size
@@ -145,7 +159,7 @@ def step_02_process_uec_folder(destination_route: Path) -> None:
 
       try:
         write_image_in_yolo(source_image_path, image_path)
-        write_yolo_label(label_path, FOOD_CLASS, bbs)
+        write_yolo_label(label_path, food_class_id, bbs)
         stored += 1
       except Exception as e:
         log_skipped(source_image_path, f"write failed: {type(e).__name__}")
@@ -159,7 +173,7 @@ def step_02_process_uec_folder(destination_route: Path) -> None:
 
   def process_category_folders() -> None:
     for folder in category_folders:
-      print(f"Processing category {folder.name}")
+      print(f"===Processing category {folder.name}===")
 
       bb_info = get_bb_info_txt(folder)
       if not bb_info:
@@ -167,9 +181,11 @@ def step_02_process_uec_folder(destination_route: Path) -> None:
         continue
 
       map_image_to_bb = get_map_images_with_bb(bb_info)
+      print("> parsed bb_info, found", len(map_image_to_bb), "images with bboxes")
+      print("> converting to YOLO format...")
       yolo_map, skipped_imgs, dropped_bbs = get_map_images_with_bb_yolo(folder, map_image_to_bb)
+      print("> storing images and labels...")
       stored, write_failed = store_images_in_yolo_format(destination_route, folder, yolo_map)
-
       print(
         f"  stored={stored} skipped_imgs={skipped_imgs} "
         f"dropped_bboxes={dropped_bbs} write_failed={write_failed}"
@@ -179,9 +195,10 @@ def step_02_process_uec_folder(destination_route: Path) -> None:
 
 def main() -> None:
   """Start the UEC FOOD-256 → YOLO conversion migration."""
+  food_class_id = get_food_class_id()
   staging = step_01_reset_staging()
 
-  step_02_process_uec_folder(staging)
+  step_02_process_uec_folder(staging, food_class_id)
   # yes, 2 steps
 
   return staging
