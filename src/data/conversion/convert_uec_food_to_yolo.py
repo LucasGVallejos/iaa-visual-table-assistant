@@ -1,17 +1,22 @@
-import csv
-import shutil
 from PIL import Image
 from pathlib import Path
+
 from src.utils.paths import (
-  get_skipped_images_csv_path,
   get_uec_staging_dir,
   get_uecfood256_dataset_original_dir,
 )
-from src.data.convert_to_yolo import (
+from src.data.common.convert_to_yolo import (
   load_label_mapping,
   voc_to_yolo,
-  write_image_in_yolo,
-  write_yolo_label,
+)
+from src.data.common.dataset_io import (
+  append_skipped_image,
+  clip_yolo_bbox,
+  get_skipped_images_csv_path,
+  init_skipped_images_csv,
+  is_valid_yolo_bbox,
+  reset_yolo_staging_dir,
+  write_yolo_sample,
 )
 
 SOURCE_LABEL = "uec_food_256"
@@ -21,12 +26,6 @@ SOURCE_LABEL = "uec_food_256"
 # NOTE 2: No origin -> destination map is needed here; staging filenames
 # `<3-digit-category>_<imgid>.jpg` already encode source provenance per plan
 # Etapa C. The global manifest is produced later by Etapa D (merge + rename).
-
-
-def log_skipped(original_path: Path, reason: str) -> None:
-  """Append a skip row to the shared skipped-images CSV."""
-  with open(get_skipped_images_csv_path(), "a", newline="") as f:
-    csv.writer(f).writerow([SOURCE_LABEL, str(original_path), reason])
 
 
 def get_food_class_id() -> int:
@@ -40,23 +39,29 @@ def get_food_class_id() -> int:
     ) from exc
 
 
-def step_01_reset_staging() -> Path:
-  """Reset the UEC FOOD-256 staging directory and re-init the skipped-images log."""
-  staging = get_uec_staging_dir()
-  if staging.exists():
-      shutil.rmtree(staging)
-  (staging / "images").mkdir(parents=True, exist_ok=True)
-  (staging / "labels").mkdir(parents=True, exist_ok=True)
+def step_01_reset_staging() -> tuple[Path, Path]:
+  """Reset the UEC FOOD-256 staging directory and re-init its skipped-images log.
 
-  skipped = get_skipped_images_csv_path()
-  skipped.parent.mkdir(parents=True, exist_ok=True)
-  with open(skipped, "w", newline="") as f:
-    csv.writer(f).writerow(["source", "original_path", "reason"])
+  Returns ``(staging_dir, skipped_csv_path)``. The skipped CSV is per-source so
+  this never touches logs from other datasets.
+  """
+  staging = reset_yolo_staging_dir(get_uec_staging_dir())
 
-  return staging
+  skipped_csv = get_skipped_images_csv_path(SOURCE_LABEL)
+  init_skipped_images_csv(skipped_csv, overwrite=True)
 
-def step_02_process_uec_folder(destination_route: Path, food_class_id: int) -> None:
+  return staging, skipped_csv
+
+
+def step_02_process_uec_folder(
+  destination_route: Path,
+  food_class_id: int,
+  skipped_csv: Path,
+) -> None:
   original_route = get_uecfood256_dataset_original_dir()
+
+  def log_skipped(original_path: Path, reason: str) -> None:
+    append_skipped_image(skipped_csv, SOURCE_LABEL, original_path, reason)
 
   def get_all_category_folders() -> list[Path]:
     """Returns a sorted list of all category folders in the UEC FOOD-256 dataset."""
@@ -72,7 +77,7 @@ def step_02_process_uec_folder(destination_route: Path, food_class_id: int) -> N
     bb_info_path = folder / "bb_info.txt"
     if not bb_info_path.exists():
       return []
-    with open(bb_info_path, "r") as f:
+    with open(bb_info_path, "r", encoding="utf-8") as f:
       return f.readlines()[1:]
 
   def get_map_images_with_bb(bb_info: list[str]) -> dict[str, list[tuple[int, int, int, int]]]:
@@ -118,9 +123,9 @@ def step_02_process_uec_folder(destination_route: Path, food_class_id: int) -> N
       valid_bboxes: list[list[float]] = []
       for bb in bbs:
         yolo = voc_to_yolo(bb, img_width=width, img_height=height)
-        clipped = [min(1.0, max(0.0, v)) for v in yolo]
+        clipped = clip_yolo_bbox(yolo)
 
-        if clipped[2] == 0 or clipped[3] == 0:
+        if not is_valid_yolo_bbox(clipped):
           log_skipped(image_path, f"degenerate bbox after clip: {clipped}")
           dropped_bboxes += 1
           continue
@@ -145,7 +150,8 @@ def step_02_process_uec_folder(destination_route: Path, food_class_id: int) -> N
     Write YOLO labels and re-encoded images to staging.
 
     Image filename in staging: `<3-digit-category>_<imgid>.jpg` per plan Etapa C.
-    Image is written first so a label without its image can never exist on disk.
+    `write_yolo_sample` writes the image first, then the label, and rolls both
+    back if either step fails.
     """
     category = source_folder.name.zfill(3)
     stored = 0
@@ -156,18 +162,19 @@ def step_02_process_uec_folder(destination_route: Path, food_class_id: int) -> N
       label_path = staging_folder / "labels" / f"{stem}.txt"
       image_path = staging_folder / "images" / f"{stem}.jpg"
       source_image_path = source_folder / f"{img_id}.jpg"
+      annotations = [(food_class_id, bbox) for bbox in bbs]
 
       try:
-        write_image_in_yolo(source_image_path, image_path)
-        write_yolo_label(label_path, food_class_id, bbs)
+        write_yolo_sample(
+          source_image_path=source_image_path,
+          output_image_path=image_path,
+          output_label_path=label_path,
+          annotations=annotations,
+        )
         stored += 1
       except Exception as e:
         log_skipped(source_image_path, f"write failed: {type(e).__name__}")
         write_failed += 1
-        if image_path.exists():
-          image_path.unlink()
-        if label_path.exists():
-          label_path.unlink()
 
     return stored, write_failed
 
@@ -193,16 +200,18 @@ def step_02_process_uec_folder(destination_route: Path, food_class_id: int) -> N
 
   process_category_folders()
 
-def main() -> None:
+
+def main() -> Path:
   """Start the UEC FOOD-256 → YOLO conversion migration."""
   food_class_id = get_food_class_id()
-  staging = step_01_reset_staging()
+  staging, skipped_csv = step_01_reset_staging()
 
-  step_02_process_uec_folder(staging, food_class_id)
+  step_02_process_uec_folder(staging, food_class_id, skipped_csv)
   # yes, 2 steps
 
   return staging
 
-# Run with `python -m src.data.convert_uec_food_to_yolo`
+
+# Run with `python -m src.data.conversion.convert_uec_food_to_yolo`
 if __name__ == "__main__":
   main()
