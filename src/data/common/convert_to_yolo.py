@@ -79,6 +79,18 @@ def load_class_mapping(config_path: str | Path = "configs/classes.yaml") -> dict
     return {cls["name"]: cls["id"] for cls in config["classes"]}
 
 
+def load_classes_config(config_path: str | Path = "configs/classes.yaml") -> list[dict]:
+    """Load the full class entries from `configs/classes.yaml`.
+
+    Returns the raw list of dicts under the top-level ``classes`` key, preserving
+    every field declared in the config (``id``, ``name``, ``color``,
+    ``color_name``, ``description``, ...).
+    """
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    return list(config["classes"])
+
+
 def load_label_mapping(config_path: str | Path = "configs/label_mapping.yaml") -> dict:
     """Load source-dataset label -> target YOLO class_id mapping.
     Returns the full YAML document.
