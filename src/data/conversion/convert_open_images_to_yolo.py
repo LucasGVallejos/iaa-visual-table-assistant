@@ -34,7 +34,6 @@ from src.utils.paths import (
 
 
 SOURCE_LABEL = "open_images"
-STAGING_PREFIX = "oi"
 
 
 # ---------------------------------------------------------------------------
@@ -214,22 +213,20 @@ def convert_annotations_for_image(
 
 
 def make_staging_stem(image_id, image_info: dict) -> str:
-  """Build a stable, prefixed staging filename stem for an Open Images image.
+  """Return the staging filename stem for an Open Images image.
 
-  Uses ``oi_<image_id_zero_padded>`` for numeric IDs. For non-numeric IDs,
-  derives a safe stem from the ID or the file name and applies the same
-  prefix.
+  Per the phase 1 plan (Etapa C), staging keeps the original Open Images
+  filename. Renaming to the final scheme happens in Etapa D, not here.
+  Falls back to a safe form of ``image_id`` when ``file_name`` is missing.
   """
-  try:
-    return f"{STAGING_PREFIX}_{int(image_id):08d}"
-  except (TypeError, ValueError):
-    pass
+  file_name = image_info.get("file_name", "")
+  stem = Path(file_name).stem
+  if stem:
+    return stem
 
-  raw = str(image_id)
-  if not raw or raw == "None":
-    raw = Path(image_info.get("file_name", "")).stem or "image"
-  safe = re.sub(r"[^A-Za-z0-9_-]+", "_", raw).strip("_") or "image"
-  return f"{STAGING_PREFIX}_{safe}"
+  raw = str(image_id) if image_id is not None else ""
+  safe = re.sub(r"[^A-Za-z0-9_-]+", "_", raw).strip("_")
+  return safe or "image"
 
 
 def store_image_and_labels(
