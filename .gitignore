@@ -63,3 +63,4 @@ Thumbs.db
 *.log
 
 reports/skipped_images/
+reports/class_distribution_*.json

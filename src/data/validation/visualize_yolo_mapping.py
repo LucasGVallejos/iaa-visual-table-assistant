@@ -23,6 +23,10 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 from src.data.common.convert_to_yolo import load_classes_config
+from src.data.common.dataset_io import (
+    list_staging_images,
+    parse_yolo_label_file,
+)
 from src.utils.paths import (
     get_open_images_staging_dir,
     get_outputs_dir,
@@ -30,7 +34,6 @@ from src.utils.paths import (
 )
 
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 DEFAULT_SAMPLES_PER_CLASS = 5
 DEFAULT_RANDOM_SEED = 42
 FALLBACK_COLOR = (0.5, 0.5, 0.5)  # gray, only used for class IDs not in the config
@@ -70,36 +73,6 @@ def yolo_to_xyxy(
     x2 = (cx + w / 2.0) * img_width
     y2 = (cy + h / 2.0) * img_height
     return x1, y1, x2, y2
-
-
-def parse_yolo_label_file(label_path: Path) -> list[tuple[int, list[float]]]:
-    """Read a YOLO label file as ``[(class_id, [cx, cy, w, h]), ...]``.
-    Invalid lines are skipped; returns an empty list for a missing file.
-    """
-    annotations: list[tuple[int, list[float]]] = []
-    with open(label_path, "r", encoding="utf-8") as f:
-        for line in f:
-            parts = line.strip().split()
-            if len(parts) != 5:
-                continue
-            try:
-                class_id = int(parts[0])
-                bbox = [float(value) for value in parts[1:]]
-            except ValueError:
-                continue
-            annotations.append((class_id, bbox))
-    return annotations
-
-
-def list_staging_images(staging_dir: Path) -> list[Path]:
-    """Return image paths in ``<staging>/images/`` sorted for determinism."""
-    images_dir = staging_dir / "images"
-    if not images_dir.is_dir():
-        return []
-    return sorted(
-        p for p in images_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
-    )
 
 
 def label_path_for(staging_dir: Path, image_path: Path) -> Path:

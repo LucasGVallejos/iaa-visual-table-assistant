@@ -105,3 +105,48 @@ def write_yolo_sample(
     if output_label_path.exists():
       output_label_path.unlink()
     raise
+
+# ---------------------------------------------------------------------------
+# Reading staged YOLO datasets
+# ---------------------------------------------------------------------------
+IMAGE_EXTENSIONS: set[str] = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
+
+
+def list_staging_images(staging_dir: Path) -> list[Path]:
+  """List image paths inside ``<staging_dir>/images/`` sorted by filename.
+
+  Returns an empty list if the ``images/`` subdirectory does not exist. The
+  sort order is purely alphabetical, which gives deterministic output to any
+  caller that iterates the result.
+  """
+  images_dir = staging_dir / "images"
+  if not images_dir.is_dir():
+    return []
+  return sorted(
+    p for p in images_dir.iterdir()
+    if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+  )
+
+
+def parse_yolo_label_file(label_path: Path) -> list[tuple[int, list[float]]]:
+  """Read a YOLO label file as ``[(class_id, [cx, cy, w, h]), ...]``.
+
+  Lines that don't have exactly 5 fields, or whose first field is not an
+  integer, or whose remaining fields are not floats, are silently skipped.
+  Structural validation is the job of dedicated validators; this helper is
+  intentionally permissive so it can be used by analysis and visualization
+  scripts.
+  """
+  annotations: list[tuple[int, list[float]]] = []
+  with open(label_path, "r", encoding="utf-8") as f:
+    for line in f:
+      parts = line.strip().split()
+      if len(parts) != 5:
+        continue
+      try:
+        class_id = int(parts[0])
+        bbox = [float(value) for value in parts[1:]]
+      except ValueError:
+        continue
+      annotations.append((class_id, bbox))
+  return annotations

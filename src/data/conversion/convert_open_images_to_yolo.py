@@ -347,7 +347,7 @@ def step_02_process_open_images_folder(staging: Path, skipped_csv: Path) -> None
       )
       stored_images += 1
       written_bboxes += len(valid_annotations)
-      print(f"Image {image_id} processed with {len(valid_annotations)} annotations of {len(image_annotations)}")
+      #print(f"Image {image_id} processed with {len(valid_annotations)} annotations of {len(image_annotations)}")
     except Exception as e:
       log_skipped(skipped_csv, source_image_path, f"write failed: {type(e).__name__}")
       write_failures += 1
