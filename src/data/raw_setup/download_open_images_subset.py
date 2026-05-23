@@ -84,6 +84,11 @@ def filter_detections_by_requested_classes(
     Comparison is case-sensitive to match Open Images label names
     exactly (e.g. "Bottle", not "bottle"). No label remapping is done.
 
+    The full ``OPEN_IMAGES_CLASSES`` set should be passed here regardless
+    of which class triggered the download, so co-occurring target classes
+    in the same image are preserved (multi-class images are then merged by
+    ``dedupe_and_merge_samples`` after the per-class loop ends).
+
     Args:
         dataset: FiftyOne dataset to filter.
         requested_classes: List of class names to keep.
@@ -119,6 +124,91 @@ def filter_detections_by_requested_classes(
         "detections_before": detections_before,
         "detections_after": detections_after,
         "samples_without_detections": samples_without_detections,
+    }
+
+
+def _detection_dedup_key(det) -> tuple:
+    """Return a stable key for two detections that should be considered identical.
+
+    Two detections collide when label and bbox match (bbox rounded to 6
+    decimals to absorb float noise). Per-class downloads can re-download the
+    same image and therefore the same annotations; this key catches that.
+    """
+    bbox = det.bounding_box or [0.0, 0.0, 0.0, 0.0]
+    return (det.label, *(round(float(v), 6) for v in bbox))
+
+
+def dedupe_and_merge_samples(dataset: fo.Dataset) -> dict:
+    """Collapse multiple FiftyOne samples that point at the same image file.
+
+    The per-class download loop in :func:`download_dataset` will visit the
+    same Open Images file several times when it appears under more than one
+    target class. Without dedupe each iteration would add a separate sample
+    with only that iteration's class, so a single image with bottle + cup
+    + plate would become three single-class samples. We avoid that here by:
+
+    1. Grouping samples by image basename (Open Images filenames are
+       content hashes, so the basename is a reliable cross-iteration key).
+    2. Merging the detections of every sample in a group and dropping
+       duplicates with :func:`_detection_dedup_key`.
+    3. Keeping the first sample of each group with the merged detection
+       list and deleting the rest.
+
+    Returns counters useful for logging.
+    """
+    samples_before = len(dataset)
+    detections_before = 0
+
+    # Group sample IDs by basename. Walking the dataset twice (once to
+    # group, once to mutate) keeps things simple and avoids modifying
+    # while iterating.
+    groups: dict[str, list[str]] = {}
+    for sample in dataset:
+        detections_before += (
+            len(sample.ground_truth.detections)
+            if sample.ground_truth and sample.ground_truth.detections
+            else 0
+        )
+        basename = Path(sample.filepath).name
+        groups.setdefault(basename, []).append(sample.id)
+
+    duplicate_groups = sum(1 for ids in groups.values() if len(ids) > 1)
+    samples_to_delete: list[str] = []
+
+    for ids in groups.values():
+        if len(ids) == 1:
+            continue
+
+        merged: dict[tuple, object] = {}
+        keeper_id = ids[0]
+        for sample_id in ids:
+            sample = dataset[sample_id]
+            if not sample.ground_truth or not sample.ground_truth.detections:
+                continue
+            for det in sample.ground_truth.detections:
+                merged.setdefault(_detection_dedup_key(det), det)
+
+        keeper = dataset[keeper_id]
+        keeper.ground_truth.detections = list(merged.values())
+        keeper.save()
+        samples_to_delete.extend(ids[1:])
+
+    if samples_to_delete:
+        dataset.delete_samples(samples_to_delete)
+
+    samples_after = len(dataset)
+    detections_after = 0
+    for sample in dataset:
+        if sample.ground_truth and sample.ground_truth.detections:
+            detections_after += len(sample.ground_truth.detections)
+
+    return {
+        "samples_before": samples_before,
+        "samples_after": samples_after,
+        "samples_removed": samples_before - samples_after,
+        "duplicate_groups": duplicate_groups,
+        "detections_before": detections_before,
+        "detections_after": detections_after,
     }
 
 
@@ -169,8 +259,12 @@ def download_dataset() -> fo.Dataset:
             max_workers=MAX_WORKERS,
         )
 
-        # Filter detections to keep only the requested class
-        stats = filter_detections_by_requested_classes(temp_dataset, [class_name])
+        # Filter detections to keep every target class, not just the one
+        # that triggered this iteration. Co-occurring target classes are
+        # then merged across iterations by ``dedupe_and_merge_samples``.
+        stats = filter_detections_by_requested_classes(
+            temp_dataset, OPEN_IMAGES_CLASSES
+        )
 
         print(f"  Samples downloaded:              {len(temp_dataset)}")
         print(f"  Detections before filtering:     {stats['detections_before']}")
@@ -198,6 +292,16 @@ def download_dataset() -> fo.Dataset:
         fo.delete_dataset(temp_name)
 
     print(f"\nCombined dataset '{DATASET_NAME}': {len(combined)} samples")
+
+    print("\nDeduplicating combined dataset...")
+    dedupe_stats = dedupe_and_merge_samples(combined)
+    print(f"  samples before dedupe:     {dedupe_stats['samples_before']}")
+    print(f"  unique images:             {dedupe_stats['samples_after']}")
+    print(f"  duplicate groups merged:   {dedupe_stats['duplicate_groups']}")
+    print(f"  samples removed:           {dedupe_stats['samples_removed']}")
+    print(f"  detections before dedupe:  {dedupe_stats['detections_before']}")
+    print(f"  detections after dedupe:   {dedupe_stats['detections_after']}")
+
     return combined
 
 
@@ -215,17 +319,58 @@ def inspect_dataset(dataset: fo.Dataset) -> None:
     for field_name, field in dataset.get_field_schema().items():
         print(f"    {field_name}: {field}")
 
-    # Count detections
+    # Walk the dataset once and gather: detection counts, distinct target
+    # classes per image, and per-image detection counts (for distribution
+    # stats). Doing it in a single pass avoids re-iterating thousands of
+    # samples just to compute related metrics.
+    target_classes = set(OPEN_IMAGES_CLASSES)
     total_detections = 0
     samples_without_detections = 0
+    detections_per_image: list[int] = []
+    distinct_classes_per_image: list[int] = []
+
     for sample in dataset:
         if sample.ground_truth and sample.ground_truth.detections:
-            total_detections += len(sample.ground_truth.detections)
+            dets = sample.ground_truth.detections
+            count = len(dets)
+            total_detections += count
+            detections_per_image.append(count)
+            distinct_classes_per_image.append(
+                len({det.label for det in dets if det.label in target_classes})
+            )
         else:
             samples_without_detections += 1
 
     print(f"\n  Total detections:            {total_detections}")
     print(f"  Samples without detections:  {samples_without_detections}")
+
+    # Distribution of distinct target classes per image. Sanity-checks the
+    # dedupe step: after the per-class loop merges duplicates, multi-class
+    # images should appear in numbers proportional to natural co-occurrence
+    # in Open Images. If almost everything still lands in the "1 class"
+    # bucket, dedupe didn't kick in or the upstream filter is too strict.
+    images_with_n_classes: dict[int, int] = {}
+    for n in distinct_classes_per_image:
+        bucket = n if n < 3 else 3
+        images_with_n_classes[bucket] = images_with_n_classes.get(bucket, 0) + 1
+
+    print("\n  Images by distinct target classes:")
+    print(f"    1 class:    {images_with_n_classes.get(1, 0)}")
+    print(f"    2 classes:  {images_with_n_classes.get(2, 0)}")
+    print(f"    3+ classes: {images_with_n_classes.get(3, 0)}")
+
+    # Detections per image distribution. Useful to detect skew (e.g. a
+    # single image holding hundreds of bottles inflating class counts).
+    if detections_per_image:
+        sorted_counts = sorted(detections_per_image)
+        n = len(sorted_counts)
+        p50 = sorted_counts[n // 2]
+        mean = sum(sorted_counts) / n
+        print("\n  Detections per image:")
+        print(
+            f"    min={sorted_counts[0]}  p50={p50}  "
+            f"mean={mean:.2f}  max={sorted_counts[-1]}"
+        )
 
     # Example samples
     print("\n  Example samples:")
