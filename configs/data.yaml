@@ -1,11 +1,14 @@
-# Dataset configuration for YOLO training
-# This file defines the dataset paths and class names used by the model.
+# Dataset configuration for YOLO training.
+#
+# The split is materialized as text files of absolute image paths produced
+# by ``src/data/preparation/split_dataset.py``. YOLO loads each split by
+# reading the corresponding .txt file, so no images are duplicated on disk.
 
 path: datasets/table_assistant_yolo
 
-train: images/train
-val: images/val
-test: images/test
+train: ../reports/dataset_splits/train.txt
+val: ../reports/dataset_splits/val.txt
+test: ../reports/dataset_splits/test.txt
 
 nc: 7
 
