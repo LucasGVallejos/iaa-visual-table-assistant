@@ -136,10 +136,13 @@ Two environments, with different responsibilities:
 - **Local** (Conda env `iaa-table-assistant`, see `environment.yml` and
   `requirements.txt`): raw dataset acquisition (FiftyOne is heavy and best
   run locally), dataset conversion to YOLO format, dataset zip packaging.
-- **Google Colab** (notebook in `notebooks/01_training_colab.ipynb`):
-  training, evaluation, ONNX export. Reads from Google Drive zips; extracts
-  them into the repo's `datasets/raw_datasets/` directory for fast local I/O
-  during the session.
+- **Google Colab**:
+  - `notebooks/01_dataset_prep_colab.ipynb`: dataset preparation (extract raw
+    zips from Drive, convert per source to YOLO, merge, split). Reads zips
+    from Drive into `datasets/raw_datasets/` inside the repo for fast local
+    I/O during the session.
+  - `notebooks/02_training_colab.ipynb`: training, evaluation, ONNX export.
+    Pulls the DVC-tracked dataset before running.
 
 When writing scripts, declare the intended environment at the top of the
 module docstring. Do not write code that silently assumes Colab paths
