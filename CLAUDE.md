@@ -42,7 +42,7 @@ to deep learning and computer vision specifics. He explicitly wants to
 
 ## 2. Detection classes (frozen)
 
-The final YOLO class set is defined in `configs/data.yaml` and should NOT be
+The final YOLO class set is defined in `configs/data_runtime_colab.yaml` and should NOT be
 changed without explicit user confirmation:
 
 | ID | Class      | Description                              |

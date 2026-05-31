@@ -1,4 +1,4 @@
-# Source dataset labels -> target YOLO class IDs defined in configs/data.yaml
+# Source dataset labels -> target YOLO class IDs defined in configs/data_runtime_colab.yaml
 
 open_images:
   "Coffee cup": 1

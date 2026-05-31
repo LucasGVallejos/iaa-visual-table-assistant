@@ -8,7 +8,7 @@ The dataset is versioned with DVC as a single ZIP::
 This script unpacks that ZIP into ``datasets/table_assistant_yolo_package/``
 and exposes the dataset at the canonical project path
 ``datasets/table_assistant_yolo/`` via a symlink, so every other tool
-(training, validators, ``configs/data.yaml``, ...) keeps addressing the same
+(training, validators, ``configs/data_runtime_colab.yaml``, ...) keeps addressing the same
 location regardless of whether it was generated locally or restored from
 DVC.
 

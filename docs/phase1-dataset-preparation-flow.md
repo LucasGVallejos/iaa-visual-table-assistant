@@ -12,7 +12,7 @@ flowchart TB
         direction LR
         OI["Open Images V7<br/>COCO format export<br/>(local_data/)"]
         UEC["UEC FOOD-256<br/>per-category folders<br/>(local_data/)"]
-        CFG["configs/<br/>data.yaml, classes.yaml"]
+        CFG["configs/<br/>data_runtime_colab.yaml, classes.yaml"]
     end
 
     subgraph Pipeline["Pipeline — runs locally"]

@@ -22,12 +22,12 @@ def load_class_names(config_path: str | Path | None = None) -> Dict[int, str]:
 
     Args:
         config_path: Optional path to the data YAML config.
-            If not provided, configs/data.yaml is used.
+            If not provided, configs/data_runtime_colab.yaml is used.
 
     Returns:
         Dictionary mapping class IDs to class names.
     """
-    path = Path(config_path) if config_path else get_config_path("data.yaml")
+    path = Path(config_path) if config_path else get_config_path("data_runtime_colab.yaml")
 
     with open(path, "r", encoding="utf-8") as file:
         config = yaml.safe_load(file)

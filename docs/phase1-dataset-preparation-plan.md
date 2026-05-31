@@ -23,7 +23,7 @@ datasets/table_assistant_yolo/
 
 Labels follow the YOLO convention: one line per object, format
 `class_id cx cy w h` with all bbox values normalized to `[0, 1]`. The class
-IDs match `configs/data.yaml`:
+IDs match `configs/data_runtime_colab.yaml`:
 
 ```
 0=food  1=cup  2=bottle  3=plate  4=spoon  5=fork  6=knife
@@ -89,7 +89,7 @@ Where:
   increasing across the whole dataset. Open Images images are processed
   first, then UEC, so the manifest is human-scannable by source. Counter
   starts at `00000001`. 8 digits leaves room for future source datasets.
-- `<class_*>` is the YOLO class name (from `configs/data.yaml`), included
+- `<class_*>` is the YOLO class name (from `configs/data_runtime_colab.yaml`), included
   once per unique class present in the image's labels. An image with 3
   knife bboxes still gets `_knife` once.
 - Classes are ordered by **class ID ascending**: food (0), cup (1),
@@ -165,7 +165,7 @@ Currently the source-to-target mapping lives in prose in
 
 ```yaml
 # configs/label_mapping.yaml
-# Source class -> YOLO class ID (defined in configs/data.yaml).
+# Source class -> YOLO class ID (defined in configs/data_runtime_colab.yaml).
 # Source class names that do not appear here are dropped.
 
 open_images:
@@ -318,7 +318,7 @@ Create `src/data/merge_and_rename.py`. This script:
   so the manifest is human-scannable by source.
 - For each (image, label) pair:
   - Read the label file to extract the unique set of class IDs present.
-  - Translate class IDs → class names via `configs/data.yaml`.
+  - Translate class IDs → class names via `configs/data_runtime_colab.yaml`.
   - Compute the new filename per Decision 3 (8-digit seq + classes sorted
     by ID ascending + `.jpg`).
   - Copy the image to `datasets/table_assistant_yolo/images/<new_name>`.
@@ -421,9 +421,9 @@ them actively while implementing.
   pipeline for a single bad file.
 - **Idempotency**: every script should be safe to re-run. Wipe outputs
   before re-writing; do not silently append.
-- **`configs/data.yaml` mismatch**: `data.yaml` currently points at
+- **`configs/data_runtime_colab.yaml` mismatch**: `data_runtime_colab.yaml` currently points at
   `images/train`, `images/val`, `images/test`. The flat layout this plan
-  produces does not have those subdirs. Updating `data.yaml` (or
+  produces does not have those subdirs. Updating `data_runtime_colab.yaml` (or
   producing a split before training) is a training-time concern, not
   dataset-prep. Flag it when starting the training workstream.
 

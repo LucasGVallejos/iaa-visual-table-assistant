@@ -8,7 +8,7 @@ stratified 60/15/25 split.
 
 The split is materialized as three text files of image paths under
 ``reports/dataset_splits/``. YOLO consumes those paths through
-``configs/data.yaml`` without moving any image on disk.
+``configs/data_runtime_colab.yaml`` without moving any image on disk.
 
 The script also refreshes a ``## Class Distribution`` section in
 ``reports/dataset_notes.md`` so the latest counts (and any class-imbalance
@@ -162,7 +162,7 @@ def write_split_files(
         out_path = out_dir / f"{split_name}.txt"
         with open(out_path, "w", encoding="utf-8") as f:
             for stem in stems:
-                # YOLO accepts absolute paths or paths relative to data.yaml.
+                # YOLO accepts absolute paths or paths relative to data_runtime_colab.yaml.
                 # We write absolute to remove ambiguity about cwd.
                 image_path = (images_dir / f"{stem}.jpg").resolve()
                 f.write(f"{image_path}\n")

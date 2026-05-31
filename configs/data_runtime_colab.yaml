@@ -4,11 +4,11 @@
 # by ``src/data/preparation/split_dataset.py``. YOLO loads each split by
 # reading the corresponding .txt file, so no images are duplicated on disk.
 
-path: datasets/table_assistant_yolo
+path: /content/iaa-visual-table-assistant
 
-train: ../reports/dataset_splits/train.txt
-val: ../reports/dataset_splits/val.txt
-test: ../reports/dataset_splits/test.txt
+train: /content/iaa-visual-table-assistant/reports/dataset_splits/train.txt
+val: /content/iaa-visual-table-assistant/reports/dataset_splits/val.txt
+test: /content/iaa-visual-table-assistant/reports/dataset_splits/test.txt
 
 nc: 7
 

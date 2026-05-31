@@ -3,7 +3,7 @@ Train the object detection model for the visual table assistant.
 
 This module belongs to Phase 1 and will be implemented after:
 - the dataset has been prepared in YOLO format;
-- configs/data.yaml points to the final dataset structure;
+- configs/data_runtime_colab.yaml points to the final dataset structure;
 - configs/train_baseline.yaml contains the first training configuration.
 
 Purpose:

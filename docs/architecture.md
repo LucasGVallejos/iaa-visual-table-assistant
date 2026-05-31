@@ -142,7 +142,7 @@ is complete.
 
 ## Configuration
 
-- `configs/data.yaml` — Dataset paths and class definitions (YOLO format).
+- `configs/data_runtime_colab.yaml` — Dataset paths and class definitions (YOLO format).
 - `configs/classes.yaml` — Class metadata (names, colors).
 - `configs/train_baseline.yaml` — Training hyperparameters (placeholder until
   dataset preparation is complete).

@@ -16,7 +16,7 @@ import yaml
 
 
 DATASET_DIR = Path("datasets/table_assistant_yolo")
-DATA_CONFIG = Path("configs/data.yaml")
+DATA_CONFIG = Path("configs/data_runtime_colab.yaml")
 
 
 def validate_label_file(label_path: Path, num_classes: int) -> list[str]:
