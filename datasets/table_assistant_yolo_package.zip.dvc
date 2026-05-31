@@ -1,0 +1,5 @@
+outs:
+- md5: 82e5032df61312788acd886233fa56ae
+  size: 4982110383
+  hash: md5
+  path: table_assistant_yolo_package.zip
