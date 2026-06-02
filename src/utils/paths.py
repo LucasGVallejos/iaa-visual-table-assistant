@@ -136,3 +136,27 @@ def get_output_path(run_name: str) -> Path:
 def get_reports_dir() -> Path:
     """Return the reports directory."""
     return get_project_root() / "reports"
+
+
+# ---------------------------------------------------------------------------
+# DVC dataset package (pulled + restored)
+# ---------------------------------------------------------------------------
+def get_dataset_package_dir() -> Path:
+    """Directory the DVC dataset package extracts into.
+
+    ``restore_dataset_package`` unpacks ``table_assistant_yolo_package.zip``
+    here, producing ``table_assistant_yolo/{images,labels}`` plus a
+    ``metadata/`` subtree, and symlinks ``datasets/table_assistant_yolo`` to
+    the inner dataset dir.
+    """
+    return get_datasets_dir() / "table_assistant_yolo_package"
+
+
+def get_package_manifest_path() -> Path:
+    """Path to the populated provenance manifest inside the dataset package.
+
+    This is the authoritative manifest written into the package metadata. The
+    repo's ``reports/dataset_manifest.csv`` is an empty header-only stub; use
+    this one (available only after pulling + restoring the package).
+    """
+    return get_dataset_package_dir() / "metadata" / "dataset_manifest.csv"
