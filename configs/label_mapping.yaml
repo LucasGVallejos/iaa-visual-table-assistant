@@ -11,6 +11,31 @@ open_images:
   Fork: 5
   Knife: 6
   "Kitchen knife": 6
+  # INJECTED by the auto-label pass (notebook 0.5): the raw v1 export has no
+  # "Food" category. Listed here so notebook 01 maps the enriched v2 food boxes.
+  "Food": 0
 
 uec_food_256:
   default: 0
+
+# Pretrained COCO-80 detector class name -> target YOLO id, used by notebook
+# 0.5 auto-labeling. Keys must match ultralytics model.names values
+# (lowercase). Names not listed are dropped.
+coco_pretrained:
+  cup: 1
+  "wine glass": 1
+  bottle: 2
+  bowl: 3            # COCO has no flat "plate"; bowl is the closest surrogate
+  spoon: 4
+  fork: 5
+  knife: 6
+  banana: 0
+  apple: 0
+  sandwich: 0
+  orange: 0
+  broccoli: 0
+  carrot: 0
+  "hot dog": 0
+  pizza: 0
+  donut: 0
+  cake: 0
