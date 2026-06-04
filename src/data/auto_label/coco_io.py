@@ -140,6 +140,7 @@ def add_annotation(
     category_id: int,
     bbox_xywh: list[float],
     ann_id: int,
+    extra: dict | None = None,
 ) -> dict:
     """
     Append a well-formed COCO annotation and return it.
@@ -150,6 +151,13 @@ def add_annotation(
     ``next_annotation_id(coco)``, so injecting many boxes stays cheap (no
     repeated scans of the annotation list).
 
+    When ``extra`` is given, its keys are merged onto the annotation before it
+    is appended. The enrichment pass uses this to tag injected boxes with
+    provenance, e.g. ``{"score": conf, "source": "auto_label"}``, which keeps
+    the document well-formed COCO (the extra keys are simply ignored by the
+    downstream name-based YOLO converter) while letting later steps tell
+    auto-labeled boxes apart from the original export.
+
     Args:
         coco: The COCO document to mutate. ``coco["annotations"]`` is created
             if absent.
@@ -157,6 +165,9 @@ def add_annotation(
         category_id: The category id for this annotation.
         bbox_xywh: COCO pixel bounding box ``[x_min, y_min, width, height]``.
         ann_id: The id to assign to the new annotation.
+        extra: Optional extra fields merged onto the annotation (e.g. a
+            detector ``score`` and a ``source`` tag). ``None`` leaves the
+            annotation as the bare well-formed COCO shape.
 
     Returns:
         The annotation dict that was appended.
@@ -170,5 +181,7 @@ def add_annotation(
         "area": w * h,
         "iscrowd": 0,
     }
+    if extra:
+        annotation.update(extra)
     coco.setdefault("annotations", []).append(annotation)
     return annotation

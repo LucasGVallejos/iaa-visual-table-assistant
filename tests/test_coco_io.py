@@ -149,6 +149,37 @@ def test_add_annotation_creates_annotations_list_when_absent():
     assert coco["annotations"][0]["area"] == 6
 
 
+def test_add_annotation_without_extra_has_no_extra_keys():
+    coco = make_coco()
+    ann = add_annotation(coco, image_id=1, category_id=1, bbox_xywh=[0, 0, 2, 3], ann_id=3)
+    assert "score" not in ann
+    assert "source" not in ann
+
+
+def test_add_annotation_extra_fields_round_trip(tmp_path):
+    coco = make_coco()
+    ann_id = next_annotation_id(coco)
+    add_annotation(
+        coco,
+        image_id=1,
+        category_id=1,
+        bbox_xywh=[0, 0, 2, 3],
+        ann_id=ann_id,
+        extra={"score": 0.9, "source": "auto_label"},
+    )
+
+    out_path = tmp_path / "labels.json"
+    save_coco(coco, out_path)
+    reloaded = load_coco(out_path)
+
+    injected = next(a for a in reloaded["annotations"] if a["id"] == ann_id)
+    assert injected["score"] == 0.9
+    assert injected["source"] == "auto_label"
+    # The standard fields stay intact alongside the extras.
+    assert injected["bbox"] == [0, 0, 2, 3]
+    assert injected["area"] == 6
+
+
 # ---------------------------------------------------------------------------
 # round-trip
 # ---------------------------------------------------------------------------

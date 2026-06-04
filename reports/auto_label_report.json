@@ -1,0 +1,48 @@
+{
+  "params": {
+    "src_dir": "/Users/alexanderarmua/Projects/UTN/iaa-visual-table-assistant/datasets/raw_datasets/open_images_subset",
+    "out": "/Users/alexanderarmua/Projects/UTN/iaa-visual-table-assistant/datasets/raw_datasets/open_images_subset_v2/labels.json",
+    "weights": "yolov8x.pt",
+    "conf": 0.4,
+    "iou_dedup": 0.5,
+    "predict_iou": 0.5,
+    "imgsz": 640,
+    "device": "",
+    "limit": 12,
+    "seed": 3,
+    "dry_run": false,
+    "report": "/Users/alexanderarmua/Projects/UTN/iaa-visual-table-assistant/reports/auto_label_report.json"
+  },
+  "src_labels": "/Users/alexanderarmua/Projects/UTN/iaa-visual-table-assistant/datasets/raw_datasets/open_images_subset/labels.json",
+  "out_labels": "/Users/alexanderarmua/Projects/UTN/iaa-visual-table-assistant/datasets/raw_datasets/open_images_subset_v2/labels.json",
+  "images_processed": 12,
+  "images_with_additions": 11,
+  "detections_total": 70,
+  "added_total": 38,
+  "added_per_class": {
+    "4 spoon": 7,
+    "1 cup": 13,
+    "3 plate": 7,
+    "2 bottle": 2,
+    "0 food": 3,
+    "6 knife": 5,
+    "5 fork": 1
+  },
+  "skipped_duplicates_per_class": {
+    "1 cup": 2,
+    "3 plate": 4,
+    "4 spoon": 1,
+    "2 bottle": 3
+  },
+  "dropped_unmapped": {
+    "book": 2,
+    "dining table": 9,
+    "person": 1,
+    "vase": 1,
+    "chair": 8,
+    "oven": 1
+  },
+  "skipped_degenerate": 0,
+  "missing_image_files": 0,
+  "created_at": "2026-06-04T03:29:27.336858+00:00"
+}

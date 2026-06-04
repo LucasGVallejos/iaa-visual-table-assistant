@@ -102,3 +102,95 @@ def map_detection_name(name: str, mapping: dict[str, int]) -> int | None:
         The target YOLO id, or ``None`` if the name is not mapped.
     """
     return mapping.get(name.lower())
+
+
+# ---------------------------------------------------------------------------
+# Geometry helpers (pure, no torch) used by the enrichment de-duplication pass
+# ---------------------------------------------------------------------------
+def xywh_to_xyxy(bbox: list[float]) -> tuple[float, float, float, float]:
+    """
+    Convert a COCO ``[x, y, w, h]`` box to ``(x1, y1, x2, y2)`` corners.
+
+    COCO stores the top-left corner plus width and height; the de-duplication
+    logic and clipping work in corner coordinates, so v1 annotations are
+    converted once via this helper before being compared against detections.
+
+    Args:
+        bbox: COCO pixel box ``[x_min, y_min, width, height]``.
+
+    Returns:
+        ``(x1, y1, x2, y2)`` where ``x2 = x + w`` and ``y2 = y + h``.
+    """
+    x, y, w, h = bbox
+    return x, y, x + w, y + h
+
+
+def iou(
+    box_a: tuple[float, float, float, float],
+    box_b: tuple[float, float, float, float],
+) -> float:
+    """
+    Intersection-over-union of two axis-aligned boxes in xyxy corners.
+
+    Standard IoU: area of overlap divided by area of union. Returns ``0.0``
+    when the boxes do not overlap and, defensively, when the union area is
+    zero (degenerate boxes) to avoid a division by zero.
+
+    Args:
+        box_a: First box as ``(x1, y1, x2, y2)``.
+        box_b: Second box as ``(x1, y1, x2, y2)``.
+
+    Returns:
+        IoU in ``[0.0, 1.0]``.
+    """
+    ax1, ay1, ax2, ay2 = box_a
+    bx1, by1, bx2, by2 = box_b
+
+    inter_x1 = max(ax1, bx1)
+    inter_y1 = max(ay1, by1)
+    inter_x2 = min(ax2, bx2)
+    inter_y2 = min(ay2, by2)
+
+    inter_w = max(0.0, inter_x2 - inter_x1)
+    inter_h = max(0.0, inter_y2 - inter_y1)
+    intersection = inter_w * inter_h
+
+    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+    union = area_a + area_b - intersection
+
+    if union <= 0.0:
+        return 0.0
+    return intersection / union
+
+
+def is_duplicate(
+    det_xyxy: tuple[float, float, float, float],
+    det_target_id: int,
+    existing: list[tuple[int, tuple[float, float, float, float]]],
+    iou_threshold: float,
+) -> bool:
+    """
+    Decide whether a detection duplicates an already-present box of the same class.
+
+    A detection is a duplicate when some ``existing`` box shares its target id
+    AND overlaps it with ``iou >= iou_threshold``. Boxes of a different target
+    id never count as duplicates, regardless of overlap: the enrichment pass is
+    allowed to add (say) a ``cup`` box that overlaps an existing ``bottle`` box.
+
+    Args:
+        det_xyxy: The candidate detection box as ``(x1, y1, x2, y2)``.
+        det_target_id: The candidate detection's target YOLO id.
+        existing: ``[(target_id, (x1, y1, x2, y2)), ...]`` already present for
+            this image (v1 boxes plus boxes accepted earlier in the same pass).
+        iou_threshold: IoU at or above which a same-class box is a duplicate.
+
+    Returns:
+        True if the detection should be dropped as a duplicate.
+    """
+    for existing_target_id, existing_xyxy in existing:
+        if existing_target_id != det_target_id:
+            continue
+        if iou(det_xyxy, existing_xyxy) >= iou_threshold:
+            return True
+    return False
