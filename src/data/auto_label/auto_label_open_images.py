@@ -417,6 +417,7 @@ def main(argv=None) -> None:
             "device": args.device,
             "limit": args.limit,
             "seed": args.seed,
+            "chunk_size": args.chunk_size,
             "dry_run": args.dry_run,
             "report": str(args.report),
         },

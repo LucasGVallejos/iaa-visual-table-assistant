@@ -33,6 +33,59 @@ OCID was evaluated but not used in the final Phase 1 dataset.
 - Split strategy: split files are generated in `02_training_colab.ipynb` using rarest-class-per-image stratification, seed 42, ratios 60/15/25.
 - Class balancing: no balancing is applied before the first baseline. Class imbalance will be evaluated from per-class metrics after the first training run.
 
+## Open Images Auto-Labeling (v2)
+
+### What was done
+
+The original Open Images COCO export (v1) only carries the 10 source labels and
+no `food` class, so many visible tableware and food items are unannotated. A
+pretrained `yolov8x` COCO-80 detector was run over the v1 images to densify the
+labels: its detections were mapped to our 7 target classes by category name,
+de-duplicated against the existing v1 boxes, and injected as new annotations.
+The result was exported as an enriched v2 COCO document
+(`open_images_subset_v2/labels.json`). The v1 export — both its `labels.json`
+and its `data/` images — is left untouched and remains the rollback source.
+
+### Parameters
+
+- Detector confidence threshold: `conf = 0.4`.
+- Same-class IoU de-duplication against existing boxes: `iou_dedup = 0.5`.
+- Inference image size: `imgsz = 640`.
+
+### Results
+
+- 25,734 boxes added across 7,047 of 11,251 images (62.6%).
+- Per-class additions: cup 9,433, plate 3,524, bottle 3,315, food 2,632,
+  spoon 2,581, knife 2,404, fork 1,845.
+- 19,418 detections skipped as duplicates of existing v1 boxes.
+- All original v1 boxes are preserved unchanged.
+
+### Provenance
+
+- Each injected annotation carries a detector `score` and a
+  `source: "auto_label"` tag, so auto-labeled boxes can be told apart from the
+  original export at any later step.
+- The full run report is at `reports/auto_label_report.json`.
+
+### Known limitations
+
+- COCO has no flat `plate` class; the `bowl` class is used as a surrogate for
+  `plate`, which can miss flat dishes.
+- COCO `food` is only 10 specific food classes (e.g. banana, pizza, sandwich),
+  so generic plated dishes are under-detected — UEC FOOD-256 remains the main
+  source for the `food` class.
+- `person`, `chair` and `dining table` detections are deliberately dropped (no
+  target mapping), so they never enter the dataset.
+
+### Export discrepancy note
+
+The LOCAL v1 zip's `labels.json` lists 13,023 image entries while its `data/`
+holds only 11,251 files. The DRIVE v1 zip (which produced v2 on Colab) is
+self-consistent at 11,251 images, and v2 derives from that Drive variant. The
+packaging step therefore hard-validates that every v2-referenced image exists
+locally and fails otherwise, directing the packaging to run in Colab from the
+Drive-extracted v1.
+
 ## Known Issues
 
 - Class imbalance: `food` is the dominant class and `knife` is the least represented one.
