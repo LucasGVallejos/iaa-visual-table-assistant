@@ -24,6 +24,13 @@ For each selected image the pass:
   downstream-recognized category name (e.g. ``"Food"``) plus a ``score`` and a
   ``source="auto_label"`` tag.
 
+Detection runs in chunks of ``--chunk-size`` images per ``model.predict()`` call.
+Ultralytics stacks a list source into ONE batch tensor, so the chunk size is the
+effective inference batch size: passing the full ~11k path list makes it decode
+every image up front and try to allocate a ~50 GiB tensor (RuntimeError, and the
+progress bar appears hung at 0 until then). Small chunks bound memory and start
+emitting results — and advancing the bar — almost immediately.
+
 It always writes a JSON report (counts only) and prints a human summary, so a
 ``--dry-run`` answers "how many boxes would this add and where" without writing
 the v2 document.
@@ -159,6 +166,18 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="Random seed for the sample selection (only used with --limit).",
     )
     parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=32,
+        help=(
+            "Number of images per model.predict() call. Ultralytics stacks a list "
+            "source into ONE batch tensor, so the chunk size IS the inference batch "
+            "size: the full 11k list would need a ~50 GiB tensor (hard crash), and "
+            "large chunks can OOM smaller GPUs (e.g. a T4). 32 is safe and fast. "
+            "Must be >= 1."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Compute and report counts only; do not write the v2 labels.json.",
@@ -226,6 +245,9 @@ def main(argv=None) -> None:
 
     args = parse_args(argv)
 
+    if args.chunk_size < 1:
+        raise ValueError(f"--chunk-size must be >= 1, got {args.chunk_size}.")
+
     src_dir: Path = args.src_dir
     json_path = find_labels_json(src_dir)
     out_path: Path = args.out
@@ -284,22 +306,9 @@ def main(argv=None) -> None:
     skipped_degenerate = 0
     images_with_additions = 0
 
-    results = model.predict(
-        image_paths,
-        stream=True,
-        conf=args.conf,
-        iou=args.predict_iou,
-        imgsz=args.imgsz,
-        device=args.device or None,
-        verbose=False,
-    )
-
-    for image, result in tqdm(
-        zip(present, results),
-        total=len(present),
-        desc="Enriching",
-        unit="img",
-    ):
+    def process_image(image: dict, result) -> None:
+        """Process one image's detections, updating the shared counters/accumulators."""
+        nonlocal detections_total, added_total, skipped_degenerate, images_with_additions
         image_id = int(image["id"])
         width = int(image["width"])
         height = int(image["height"])
@@ -310,7 +319,7 @@ def main(argv=None) -> None:
 
         boxes = result.boxes
         if boxes is None or len(boxes) == 0:
-            continue
+            return
 
         detections = sorted(
             zip(
@@ -355,6 +364,27 @@ def main(argv=None) -> None:
         if added_this_image:
             images_with_additions += 1
             accepted_by_image[image_id] = added_this_image
+
+    # Predict in chunks: one large single predict() call over the full path list
+    # blocks for minutes on internal setup before yielding its first result, so
+    # we slice the work into --chunk-size batches that start producing results
+    # (and advancing the bar) almost immediately.
+    with tqdm(total=len(present), desc="Enriching", unit="img") as progress:
+        for start in range(0, len(present), args.chunk_size):
+            chunk_images = present[start : start + args.chunk_size]
+            chunk_paths = image_paths[start : start + args.chunk_size]
+            results = model.predict(
+                chunk_paths,
+                stream=True,
+                conf=args.conf,
+                iou=args.predict_iou,
+                imgsz=args.imgsz,
+                device=args.device or None,
+                verbose=False,
+            )
+            for image, result in zip(chunk_images, results):
+                process_image(image, result)
+                progress.update(1)
 
     out_labels: str | None = None
     if not args.dry_run:
