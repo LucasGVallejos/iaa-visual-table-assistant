@@ -32,7 +32,7 @@ from src.utils.paths import (
 # ---------------------------------------------------------------------------
 DRIVE_BASE_DIR = Path("/content/drive/MyDrive/iaa-table-assistant")
 DRIVE_RAW_DATASETS_DIR = DRIVE_BASE_DIR / "raw_datasets"
-DRIVE_OPEN_IMAGES_DIR = DRIVE_RAW_DATASETS_DIR / "open_images_subset"
+DRIVE_OPEN_IMAGES_DIR = DRIVE_RAW_DATASETS_DIR / "open_images_subset_v2"
 DRIVE_UEC_FOOD_DIR = DRIVE_RAW_DATASETS_DIR / "uec_food_256"
 
 # Local extraction targets live inside the repo under datasets/raw_datasets/.
