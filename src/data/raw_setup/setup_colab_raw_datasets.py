@@ -32,7 +32,19 @@ from src.utils.paths import (
 # ---------------------------------------------------------------------------
 DRIVE_BASE_DIR = Path("/content/drive/MyDrive/iaa-table-assistant")
 DRIVE_RAW_DATASETS_DIR = DRIVE_BASE_DIR / "raw_datasets"
+
+# Open Images source on Drive. v2 is the active subset. Downstream code
+# keeps reading from the canonical local path
+# ``datasets/raw_datasets/open_images_subset/`` regardless of which Drive
+# subset version was extracted into it.
 DRIVE_OPEN_IMAGES_DIR = DRIVE_RAW_DATASETS_DIR / "open_images_subset_v2"
+
+# The v2 zip ships a partial ``labels.json``. The full labels live next to
+# the zip folder as ``labels_v2_full.json`` and override the in-zip file
+# after extraction. When this override file is missing, the in-zip labels
+# are kept as-is (back-compat with v1).
+DRIVE_OPEN_IMAGES_LABELS_OVERRIDE = DRIVE_RAW_DATASETS_DIR / "labels_v2_full.json"
+
 DRIVE_UEC_FOOD_DIR = DRIVE_RAW_DATASETS_DIR / "uec_food_256"
 
 # Local extraction targets live inside the repo under datasets/raw_datasets/.
@@ -112,6 +124,33 @@ def unzip_to_dir(
 
     file_count = len(list(output_dir.rglob("*")))
     print(f"  Done. {file_count} files/dirs extracted.")
+
+
+def override_open_images_labels_if_present(
+    drive_override: Path,
+    local_open_images_dir: Path,
+) -> None:
+    """Replace the extracted Open Images ``labels.json`` with a Drive override.
+
+    The v2 export ships a partial ``labels.json`` inside the zip, while the
+    canonical full labels live as a separate file on Drive. When the override
+    file exists, it is copied over the extracted ``labels.json`` so downstream
+    code (``inspect_open_images_coco``, ``convert_open_images_to_yolo``)
+    keeps reading from the same canonical path. When the override is
+    missing, the in-zip labels are kept (back-compat with v1).
+    """
+    if not drive_override.exists():
+        print(
+            f"  No labels override at {drive_override} "
+            "(keeping in-zip labels.json)."
+        )
+        return
+
+    target = local_open_images_dir / "labels.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(drive_override, target)
+    size_mb = target.stat().st_size / (1024 * 1024)
+    print(f"  Overrode labels: {drive_override.name} -> {target} ({size_mb:.1f} MB)")
 
 
 def show_tree(base_dir: Path, max_items: int = 40) -> None:
@@ -247,7 +286,14 @@ def main():
 
     # --- Extract ---
     print("\nExtracting Open Images...")
-    unzip_to_dir(oi_zip, LOCAL_OPEN_IMAGES_DIR)
+    # Force a clean extraction on Open Images: the active Drive subset can
+    # change between runs (v1 -> v2) and we never want to silently reuse a
+    # stale local layout from a previous session.
+    unzip_to_dir(oi_zip, LOCAL_OPEN_IMAGES_DIR, overwrite=True)
+    override_open_images_labels_if_present(
+        DRIVE_OPEN_IMAGES_LABELS_OVERRIDE,
+        LOCAL_OPEN_IMAGES_DIR,
+    )
 
     print("\nExtracting UEC FOOD-256...")
     unzip_to_dir(uec_zip, LOCAL_UEC_FOOD_DIR)
