@@ -1,5 +1,14 @@
 # Phase 1 — Dataset Preparation Plan
 
+> **Status: COMPLETED — historical record.** This plan has been executed. The
+> implemented file names and locations differ from the original plan (e.g.
+> `convert_to_yolo.py` lives under `src/data/common/`, the merge step is
+> `src/data/preparation/prepare_dataset.py`, skipped-image logs are per-source
+> under `reports/skipped_images/`, and the dataset is packaged as a DVC-tracked
+> zip). It is kept as-is to preserve the decisions and rationale, not as a
+> description of the current code. For the current state see `CLAUDE.md` §8,
+> `docs/architecture.md`, and `docs/phase1-training-and-inference.md`.
+
 This document is the operational plan for converting the two raw source
 datasets into a single YOLO-format dataset ready for training. It captures
 the user's decisions, the staged execution order, and the gotchas to watch.

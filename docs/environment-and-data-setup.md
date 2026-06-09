@@ -20,12 +20,14 @@ FiftyOne requires a working Python environment with network access. The download
 scripts run locally and produce zip files that are then uploaded manually to
 Google Drive.
 
-## 2. Local Open Images Acquisition
+## 2. Open Images Acquisition
 
-Open Images V7 is downloaded locally using FiftyOne:
+Open Images V7 is downloaded using FiftyOne, either locally or on Colab
+(`notebooks/00_download_open_images_colab.ipynb`, useful when the local
+machine is RAM-constrained):
 
 ```bash
-python -m src.data.download_open_images_subset
+python -m src.data.raw_setup.download_open_images_subset
 ```
 
 The script:
@@ -34,20 +36,28 @@ The script:
 - Validates requested class names against the Open Images catalog before downloading.
 - Downloads up to `MAX_SAMPLES_PER_CLASS` samples per class.
 - Filters detections to keep only the requested classes (removes unrelated annotations).
-- Combines per-class downloads into a single merged dataset.
+- Deduplicates and merges per-class downloads into a single dataset.
 - Exports the combined dataset to COCO Detection format.
-- Creates a zip file for manual upload to Google Drive.
+- Creates a zip file for upload to Google Drive.
 
 Expected output:
 
 ```
-local_data/
-  raw_datasets/
-    open_images_table_objects_v1_coco/    # Exported COCO dataset (images + JSON)
-    open_images_table_objects_v1_coco.zip # Portable zip for Google Drive
+datasets/raw_datasets/
+  open_images_subset/         # Exported COCO dataset (images + labels.json)
+  open_images_subset.zip      # Portable zip for Google Drive
 ```
 
-`local_data/` is ignored by Git.
+`datasets/` is ignored by Git.
+
+### Open Images v2 (auto-labeled)
+
+A second iteration improves the labels by running an auto-labeling pass over
+the same images (`src/data/auto_label/`,
+`notebooks/0.5_auto_label_open_images_colab.ipynb`). It produces
+`open_images_subset_v2` plus a full `labels_v2_full.json`. During raw setup,
+`labels_v2_full.json` overrides the partial `labels.json` shipped inside the
+v2 zip. See `docs/auto-label-open-images.md` for the full workflow.
 
 ## 3. Current Open Images Source Classes
 
@@ -108,17 +118,22 @@ Expected layout:
 ```
 MyDrive/iaa-table-assistant/
   raw_datasets/
-    open_images/
-      open_images_table_objects_v1_coco.zip
+    open_images_subset/
+      open_images_subset.zip
+    open_images_subset_v2/
+      open_images_subset_v2.zip
+    labels_v2_full.json
     uec_food_256/
       UECFOOD256.zip
-  prepared_datasets/
-  models/
-  outputs/
+  training_outputs/
+  mlflow/
 ```
 
 - Google Drive stores persistent zip files that survive Colab session resets.
-- Colab extracts zips into `/content` for faster local access during the session.
+- Colab extracts zips into `datasets/raw_datasets/` inside the repo for faster
+  local access during the session.
+- `training_outputs/` and `mlflow/` persist YOLO run artifacts and MLflow
+  tracking across sessions.
 - Training should not read large image datasets directly from Drive if avoidable,
   since Drive I/O is significantly slower than local Colab storage.
 

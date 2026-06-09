@@ -1,5 +1,12 @@
 # Phase 1 — Dataset Preparation Flow
 
+> **Status: COMPLETED — historical record.** Companion diagram to the dataset
+> preparation plan, which has been executed. Note that, unlike the original
+> assumption in this diagram, the prepared dataset pipeline now runs on Colab
+> (`notebooks/01_dataset_prep_colab.ipynb`), not exclusively on the local
+> machine. Kept for the decision history; see `docs/architecture.md` and
+> `docs/phase1-training-and-inference.md` for the current state.
+
 Visual companion to [`phase1-dataset-preparation-plan.md`](./phase1-dataset-preparation-plan.md).
 High-level data flow from raw inputs to the prepared YOLO dataset. For
 decisions, gotchas, and per-stage implementation detail, see the plan.
